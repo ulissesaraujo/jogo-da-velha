@@ -54,6 +54,9 @@ function createRoom() {
     currentRoomId = roomId;
     myPlayer = 'X';
     
+    // Reseta o placar para nova sala
+    resetScore();
+    
     const roomData = {
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         players: {
@@ -107,6 +110,9 @@ function joinRoom(roomId) {
             // Entra como jogador O
             currentRoomId = roomId;
             myPlayer = 'O';
+            
+            // Reseta o placar para nova sala
+            resetScore();
             
             return roomRef.update({
                 'players/O': true,
