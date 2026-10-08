@@ -68,6 +68,9 @@ function initOnline() {
 // LISTAR SALAS DISPONÍVEIS
 // ==========================================
 function startListeningToRooms() {
+    // Limpa salas antigas primeiro
+    cleanupOldRooms();
+    
     roomsListenerRef = database.ref('rooms');
     
     roomsListenerRef.on('value', snapshot => {
@@ -81,6 +84,26 @@ function stopListeningToRooms() {
         roomsListenerRef.off();
         roomsListenerRef = null;
     }
+}
+
+// Limpa salas com mais de 10 minutos sem atividade
+function cleanupOldRooms() {
+    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+    
+    database.ref('rooms').once('value', snapshot => {
+        const rooms = snapshot.val();
+        if (!rooms) return;
+        
+        Object.entries(rooms).forEach(([roomId, room]) => {
+            const lastActivity = room.lastActivity || room.createdAt || 0;
+            
+            // Remove sala se última atividade foi há mais de 10 minutos
+            if (lastActivity < tenMinutesAgo) {
+                database.ref(`rooms/${roomId}`).remove();
+                console.log(`Sala ${roomId} removida por inatividade`);
+            }
+        });
+    });
 }
 
 function renderRoomsList(rooms) {
@@ -120,6 +143,7 @@ function createRoom() {
     
     const roomData = {
         createdAt: firebase.database.ServerValue.TIMESTAMP,
+        lastActivity: firebase.database.ServerValue.TIMESTAMP,
         players: {
             X: true,
             O: false
@@ -177,7 +201,8 @@ function joinRoom(roomId) {
             
             return roomRef.update({
                 'players/O': true,
-                'game/status': 'playing'
+                'game/status': 'playing',
+                'lastActivity': firebase.database.ServerValue.TIMESTAMP
             });
         })
         .then(() => {
@@ -379,6 +404,9 @@ function sendMove(index) {
     }).catch(error => {
         console.error('Erro ao enviar jogada:', error);
     });
+    
+    // Atualiza timestamp de última atividade
+    database.ref(`rooms/${currentRoomId}/lastActivity`).set(firebase.database.ServerValue.TIMESTAMP);
 }
 
 // ==========================================
