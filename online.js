@@ -187,9 +187,11 @@ function updateGameFromFirebase(gameState) {
     const newBoard = gameState.board || ['', '', '', '', '', '', '', '', ''];
     const newCurrentPlayer = gameState.currentPlayer || 'X';
     
-    // Atualiza o tabuleiro visual
+    // Verifica se houve mudança no tabuleiro
+    let boardChanged = false;
     newBoard.forEach((value, index) => {
         if (value !== board[index]) {
+            boardChanged = true;
             if (value) {
                 applyMove(index, value);
             }
@@ -199,31 +201,44 @@ function updateGameFromFirebase(gameState) {
     board = [...newBoard];
     currentPlayer = newCurrentPlayer;
     
-    // Verifica resultado
-    const result = checkWinner(board);
-    
-    if (result) {
-        statusDisplay.textContent = messages.winner(result.winner);
-        statusDisplay.classList.add('winner');
-        gameActive = false;
+    // Só verifica resultado se houve mudança no tabuleiro
+    if (boardChanged) {
+        const result = checkWinner(board);
         
-        result.cells.forEach(index => {
-            cells[index].classList.add('winner-cell');
-        });
-        
-        // Atualiza placar local
-        score[result.winner.toLowerCase()]++;
-        updateScoreDisplay();
-    } else if (!board.includes('')) {
-        statusDisplay.textContent = messages.draw();
-        statusDisplay.classList.add('draw');
-        gameActive = false;
-        
-        score.empate++;
-        updateScoreDisplay();
+        if (result) {
+            statusDisplay.textContent = messages.winner(result.winner);
+            statusDisplay.classList.add('winner');
+            gameActive = false;
+            
+            result.cells.forEach(index => {
+                cells[index].classList.add('winner-cell');
+            });
+            
+            // Atualiza placar apenas se a jogada foi do OUTRO jogador
+            // (evita contar duas vezes)
+            if (result.winner !== myPlayer) {
+                score[result.winner.toLowerCase()]++;
+                updateScoreDisplay();
+            }
+        } else if (!board.includes('')) {
+            statusDisplay.textContent = messages.draw();
+            statusDisplay.classList.add('draw');
+            gameActive = false;
+            
+            // Apenas um jogador (X) incrementa o empate para evitar duplicação
+            if (myPlayer === 'X') {
+                score.empate++;
+                updateScoreDisplay();
+            }
+        } else {
+            gameActive = true;
+            updateOnlineStatus();
+        }
     } else {
-        gameActive = true;
-        updateOnlineStatus();
+        // Apenas atualiza o status se não houve mudança no tabuleiro
+        if (gameActive) {
+            updateOnlineStatus();
+        }
     }
 }
 
@@ -233,11 +248,45 @@ function updateGameFromFirebase(gameState) {
 function sendMove(index) {
     if (!currentRoomId || !gameActive) return;
     
+    // Aplica a jogada localmente primeiro
+    applyMove(index, myPlayer);
+    
     const newBoard = [...board];
     newBoard[index] = myPlayer;
+    board = newBoard;
     
     const nextPlayer = myPlayer === 'X' ? 'O' : 'X';
     
+    // Verifica se ganhou
+    const result = checkWinner(board);
+    if (result) {
+        statusDisplay.textContent = messages.winner(result.winner);
+        statusDisplay.classList.add('winner');
+        gameActive = false;
+        
+        result.cells.forEach(idx => {
+            cells[idx].classList.add('winner-cell');
+        });
+        
+        // Atualiza placar local (só quem fez a jogada vencedora)
+        score[result.winner.toLowerCase()]++;
+        updateScoreDisplay();
+    } else if (!board.includes('')) {
+        statusDisplay.textContent = messages.draw();
+        statusDisplay.classList.add('draw');
+        gameActive = false;
+        
+        // Jogador O incrementa empate (X incrementa no updateGameFromFirebase)
+        if (myPlayer === 'O') {
+            score.empate++;
+            updateScoreDisplay();
+        }
+    } else {
+        currentPlayer = nextPlayer;
+        updateOnlineStatus();
+    }
+    
+    // Envia para o Firebase
     database.ref(`rooms/${currentRoomId}/game`).update({
         board: newBoard,
         currentPlayer: nextPlayer
