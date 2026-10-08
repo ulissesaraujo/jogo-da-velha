@@ -160,6 +160,7 @@ function listenToRoom() {
 function startOnlineGame() {
     isOnlineGame = true;
     vsComputer = false;
+    lastProcessedBoard = null; // Reset ao iniciar jogo
     
     // Esconde botões de modo local
     modeBtn.style.display = 'none';
@@ -172,7 +173,11 @@ function startOnlineGame() {
     playerIndicator.className = `player-indicator ${myPlayer.toLowerCase()}`;
     
     showScreen(gameScreen);
-    listenToRoom();
+    
+    // Só chama listenToRoom se ainda não estiver ouvindo (jogador O)
+    if (!roomRef) {
+        listenToRoom();
+    }
     
     // Inicializa o jogo
     restartGame();
@@ -330,6 +335,7 @@ function leaveRoom() {
     myPlayer = null;
     roomRef = null;
     isOnlineGame = false;
+    lastProcessedBoard = null;
     
     roomCodeInput.value = '';
     showScreen(menuScreen);
