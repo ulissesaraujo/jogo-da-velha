@@ -3,48 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Velha</title>
+    <title>Jogo da Velha - Multiplayer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>Jogo da Velha</h1>
         
-        <div class="status" id="status">Vez do jogador: X</div>
-        
-        <div class="scoreboard">
-            <div class="score-item">
-                <span class="score-label x">X</span>
-                <span class="score-value" id="scoreX">0</span>
-            </div>
-            <div class="score-item">
-                <span class="score-label draw">Empate</span>
-                <span class="score-value" id="scoreDraw">0</span>
-            </div>
-            <div class="score-item">
-                <span class="score-label o">O</span>
-                <span class="score-value" id="scoreO">0</span>
+        <!-- Tela de Menu -->
+        <div id="menuScreen" class="screen">
+            <div class="menu-buttons">
+                <button class="menu-btn local-btn" id="localModeBtn">🎮 Jogar Local</button>
+                <button class="menu-btn online-btn" id="onlineModeBtn">🌐 Jogar Online</button>
             </div>
         </div>
-        
-        <div class="board" id="board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
+
+        <!-- Tela de Lobby Online -->
+        <div id="lobbyScreen" class="screen hidden">
+            <div class="lobby-options">
+                <button class="lobby-btn create-btn" id="createRoomBtn">➕ Criar Sala</button>
+                <div class="divider">ou</div>
+                <div class="join-room">
+                    <input type="text" id="roomCodeInput" placeholder="Código da sala" maxlength="6" />
+                    <button class="lobby-btn join-btn" id="joinRoomBtn">Entrar</button>
+                </div>
+            </div>
+            <button class="back-btn" id="backToMenuBtn">← Voltar</button>
         </div>
-        
-        <button class="restart-btn" id="restartBtn">Reiniciar Jogo</button>
-        <button class="reset-score-btn" id="resetScoreBtn">Zerar Placar</button>
-        <button class="mode-btn" id="modeBtn">Modo: vs Computador 🤖</button>
-        <button class="difficulty-btn" id="difficultyBtn">Nível: Impossível 🔴</button>
+
+        <!-- Tela de Aguardando -->
+        <div id="waitingScreen" class="screen hidden">
+            <div class="waiting-content">
+                <div class="room-code-display">
+                    <span>Código da sala:</span>
+                    <strong id="roomCodeDisplay">------</strong>
+                    <button class="copy-btn" id="copyCodeBtn">📋 Copiar</button>
+                </div>
+                <div class="waiting-message">
+                    <div class="spinner"></div>
+                    <span>Aguardando outro jogador...</span>
+                </div>
+            </div>
+            <button class="back-btn" id="leaveRoomBtn">← Sair da sala</button>
+        </div>
+
+        <!-- Tela do Jogo -->
+        <div id="gameScreen" class="screen hidden">
+            <div class="game-info">
+                <span class="player-indicator" id="playerIndicator">Você é: X</span>
+                <span class="online-badge" id="onlineBadge">🌐 Online</span>
+            </div>
+            
+            <div class="status" id="status">Vez do jogador: X</div>
+            
+            <div class="scoreboard">
+                <div class="score-item">
+                    <span class="score-label x">X</span>
+                    <span class="score-value" id="scoreX">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label draw">Empate</span>
+                    <span class="score-value" id="scoreDraw">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label o">O</span>
+                    <span class="score-value" id="scoreO">0</span>
+                </div>
+            </div>
+            
+            <div class="board" id="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+            
+            <div class="game-buttons">
+                <button class="restart-btn" id="restartBtn">Reiniciar Jogo</button>
+                <button class="reset-score-btn" id="resetScoreBtn">Zerar Placar</button>
+                <button class="mode-btn" id="modeBtn" style="display: none;">Modo: vs Computador 🤖</button>
+                <button class="difficulty-btn" id="difficultyBtn" style="display: none;">Nível: Impossível 🔴</button>
+            </div>
+            
+            <button class="back-btn" id="exitGameBtn">← Sair do jogo</button>
+        </div>
     </div>
     
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
     <script src="game.js"></script>
+    <script src="online.js"></script>
 </body>
 </html>
