@@ -13,6 +13,10 @@ const backToMenuBtn = document.getElementById('backToMenuBtn');
 const createRoomBtn = document.getElementById('createRoomBtn');
 const joinRoomBtn = document.getElementById('joinRoomBtn');
 const roomCodeInput = document.getElementById('roomCodeInput');
+const roomsList = document.getElementById('roomsList');
+
+// Listener das salas disponíveis
+let roomsListenerRef = null;
 
 // Elementos do DOM - Waiting
 const roomCodeDisplay = document.getElementById('roomCodeDisplay');
@@ -27,7 +31,10 @@ const onlineBadge = document.getElementById('onlineBadge');
 // INICIALIZAÇÃO
 // ==========================================
 function initOnline() {
-    backToMenuBtn.addEventListener('click', () => showScreen(menuScreen));
+    backToMenuBtn.addEventListener('click', () => {
+        stopListeningToRooms();
+        showScreen(menuScreen);
+    });
     createRoomBtn.addEventListener('click', createRoom);
     joinRoomBtn.addEventListener('click', () => joinRoom(roomCodeInput.value.toUpperCase()));
     leaveRoomBtn.addEventListener('click', leaveRoom);
@@ -44,6 +51,60 @@ function initOnline() {
     roomCodeInput.addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase();
     });
+    
+    // Quando entrar no lobby, começa a listar salas
+    const originalShowScreen = showScreen;
+    window.showScreen = function(screen) {
+        originalShowScreen(screen);
+        if (screen === lobbyScreen) {
+            startListeningToRooms();
+        } else {
+            stopListeningToRooms();
+        }
+    };
+}
+
+// ==========================================
+// LISTAR SALAS DISPONÍVEIS
+// ==========================================
+function startListeningToRooms() {
+    roomsListenerRef = database.ref('rooms');
+    
+    roomsListenerRef.on('value', snapshot => {
+        const rooms = snapshot.val();
+        renderRoomsList(rooms);
+    });
+}
+
+function stopListeningToRooms() {
+    if (roomsListenerRef) {
+        roomsListenerRef.off();
+        roomsListenerRef = null;
+    }
+}
+
+function renderRoomsList(rooms) {
+    if (!rooms) {
+        roomsList.innerHTML = '<div class="no-rooms">Nenhuma sala disponível. Crie uma!</div>';
+        return;
+    }
+    
+    // Filtra apenas salas aguardando jogador
+    const availableRooms = Object.entries(rooms).filter(([id, room]) => {
+        return room.players && room.players.X && !room.players.O && room.game?.status === 'waiting';
+    });
+    
+    if (availableRooms.length === 0) {
+        roomsList.innerHTML = '<div class="no-rooms">Nenhuma sala disponível. Crie uma!</div>';
+        return;
+    }
+    
+    roomsList.innerHTML = availableRooms.map(([roomId, room]) => `
+        <div class="room-item" onclick="joinRoom('${roomId}')">
+            <span class="room-code">${roomId}</span>
+            <span class="room-status">Aguardando</span>
+        </div>
+    `).join('');
 }
 
 // ==========================================

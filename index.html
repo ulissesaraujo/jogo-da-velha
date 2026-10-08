@@ -21,11 +21,21 @@
         <!-- Tela de Lobby Online -->
         <div id="lobbyScreen" class="screen hidden">
             <div class="lobby-options">
-                <button class="lobby-btn create-btn" id="createRoomBtn">➕ Criar Sala</button>
-                <div class="divider">ou</div>
-                <div class="join-room">
-                    <input type="text" id="roomCodeInput" placeholder="Código da sala" maxlength="6" />
-                    <button class="lobby-btn join-btn" id="joinRoomBtn">Entrar</button>
+                <button class="lobby-btn create-btn" id="createRoomBtn">➕ Criar Nova Sala</button>
+                
+                <div class="divider">ou entre em uma sala disponível</div>
+                
+                <div class="rooms-list" id="roomsList">
+                    <div class="loading-rooms">
+                        <div class="spinner"></div>
+                        <span>Buscando salas...</span>
+                    </div>
+                </div>
+                
+                <div class="manual-join">
+                    <span>Tem um código? </span>
+                    <input type="text" id="roomCodeInput" placeholder="Código" maxlength="6" />
+                    <button class="lobby-btn join-btn small" id="joinRoomBtn">Entrar</button>
                 </div>
             </div>
             <button class="back-btn" id="backToMenuBtn">← Voltar</button>
