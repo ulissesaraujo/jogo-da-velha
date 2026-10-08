@@ -219,6 +219,8 @@ function joinRoom(roomId) {
 // ==========================================
 // OUVIR MUDANÇAS NA SALA
 // ==========================================
+let lastResetScoreTimestamp = null;
+
 function listenToRoom() {
     if (!currentRoomId) return;
     
@@ -242,6 +244,12 @@ function listenToRoom() {
             
             // Atualiza o estado do jogo
             updateGameFromFirebase(room.game);
+        }
+        
+        // Verifica se alguém zerou o placar
+        if (room.resetScore && room.resetScore !== lastResetScoreTimestamp) {
+            lastResetScoreTimestamp = room.resetScore;
+            resetScore();
         }
     });
 }
@@ -420,6 +428,18 @@ restartBtn.addEventListener('click', () => {
             currentPlayer: 'X',
             status: 'playing'
         });
+        // Atualiza timestamp de última atividade
+        database.ref(`rooms/${currentRoomId}/lastActivity`).set(firebase.database.ServerValue.TIMESTAMP);
+    }
+});
+
+// ==========================================
+// ZERAR PLACAR ONLINE
+// ==========================================
+resetScoreBtn.addEventListener('click', () => {
+    if (isOnlineGame && currentRoomId) {
+        // Envia comando de zerar placar para o Firebase
+        database.ref(`rooms/${currentRoomId}/resetScore`).set(firebase.database.ServerValue.TIMESTAMP);
     }
 });
 
