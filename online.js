@@ -200,11 +200,28 @@ function updateGameFromFirebase(gameState) {
     const newCurrentPlayer = gameState.currentPlayer || 'X';
     const boardKey = newBoard.join(',');
     
-    // Evita processar o mesmo estado duas vezes
-    if (boardKey === lastProcessedBoard) {
+    // Detecta se o jogo foi reiniciado (tabuleiro vazio e era diferente antes)
+    const isReset = boardKey === ',,,,,,,,' && lastProcessedBoard && lastProcessedBoard !== ',,,,,,,,';
+    
+    // Evita processar o mesmo estado duas vezes (exceto reset)
+    if (boardKey === lastProcessedBoard && !isReset) {
         return;
     }
     lastProcessedBoard = boardKey;
+    
+    // Se foi reiniciado, limpa o tabuleiro visual
+    if (isReset) {
+        cells.forEach(cell => {
+            cell.textContent = '';
+            cell.classList.remove('taken', 'x', 'o', 'winner-cell');
+        });
+        board = ['', '', '', '', '', '', '', '', ''];
+        currentPlayer = 'X';
+        gameActive = true;
+        statusDisplay.classList.remove('winner', 'draw', 'your-turn', 'waiting-turn');
+        updateOnlineStatus();
+        return;
+    }
     
     // Atualiza o tabuleiro visual
     newBoard.forEach((value, index) => {
