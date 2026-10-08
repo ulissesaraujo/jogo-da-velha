@@ -6,6 +6,7 @@ let currentRoomId = null;
 let myPlayer = null; // 'X' ou 'O'
 let roomRef = null;
 let gameRef = null;
+let lastProcessedBoard = null; // Evita processar o mesmo estado duas vezes
 
 // Elementos do DOM - Lobby
 const backToMenuBtn = document.getElementById('backToMenuBtn');
@@ -186,26 +187,31 @@ function updateGameFromFirebase(gameState) {
     
     const newBoard = gameState.board || ['', '', '', '', '', '', '', '', ''];
     const newCurrentPlayer = gameState.currentPlayer || 'X';
+    const boardKey = newBoard.join(',');
     
-    // Verifica se houve mudança no tabuleiro
-    let boardChanged = false;
+    // Evita processar o mesmo estado duas vezes
+    if (boardKey === lastProcessedBoard) {
+        return;
+    }
+    lastProcessedBoard = boardKey;
+    
+    // Atualiza o tabuleiro visual
     newBoard.forEach((value, index) => {
-        if (value !== board[index]) {
-            boardChanged = true;
-            if (value) {
-                applyMove(index, value);
-            }
+        const cell = cells[index];
+        if (value && !cell.classList.contains('taken')) {
+            cell.textContent = value;
+            cell.classList.add('taken', value.toLowerCase());
         }
     });
     
     board = [...newBoard];
     currentPlayer = newCurrentPlayer;
     
-    // Só verifica resultado se houve mudança no tabuleiro
-    if (boardChanged) {
-        const result = checkWinner(board);
-        
-        if (result) {
+    // Verifica resultado
+    const result = checkWinner(board);
+    
+    if (result) {
+        if (gameActive) { // Só processa se o jogo ainda estava ativo
             statusDisplay.textContent = messages.winner(result.winner);
             statusDisplay.classList.add('winner');
             gameActive = false;
@@ -214,31 +220,22 @@ function updateGameFromFirebase(gameState) {
                 cells[index].classList.add('winner-cell');
             });
             
-            // Atualiza placar apenas se a jogada foi do OUTRO jogador
-            // (evita contar duas vezes)
-            if (result.winner !== myPlayer) {
-                score[result.winner.toLowerCase()]++;
-                updateScoreDisplay();
-            }
-        } else if (!board.includes('')) {
+            // Atualiza placar
+            score[result.winner.toLowerCase()]++;
+            updateScoreDisplay();
+        }
+    } else if (!board.includes('')) {
+        if (gameActive) { // Só processa se o jogo ainda estava ativo
             statusDisplay.textContent = messages.draw();
             statusDisplay.classList.add('draw');
             gameActive = false;
             
-            // Apenas um jogador (X) incrementa o empate para evitar duplicação
-            if (myPlayer === 'X') {
-                score.empate++;
-                updateScoreDisplay();
-            }
-        } else {
-            gameActive = true;
-            updateOnlineStatus();
+            score.empate++;
+            updateScoreDisplay();
         }
     } else {
-        // Apenas atualiza o status se não houve mudança no tabuleiro
-        if (gameActive) {
-            updateOnlineStatus();
-        }
+        gameActive = true;
+        updateOnlineStatus();
     }
 }
 
@@ -248,11 +245,14 @@ function updateGameFromFirebase(gameState) {
 function sendMove(index) {
     if (!currentRoomId || !gameActive) return;
     
-    // Aplica a jogada localmente primeiro
-    applyMove(index, myPlayer);
-    
     const newBoard = [...board];
     newBoard[index] = myPlayer;
+    
+    // Atualiza o lastProcessedBoard para evitar que o callback do Firebase processe de novo
+    lastProcessedBoard = newBoard.join(',');
+    
+    // Aplica a jogada localmente
+    applyMove(index, myPlayer);
     board = newBoard;
     
     const nextPlayer = myPlayer === 'X' ? 'O' : 'X';
@@ -268,7 +268,7 @@ function sendMove(index) {
             cells[idx].classList.add('winner-cell');
         });
         
-        // Atualiza placar local (só quem fez a jogada vencedora)
+        // Atualiza placar local
         score[result.winner.toLowerCase()]++;
         updateScoreDisplay();
     } else if (!board.includes('')) {
@@ -276,11 +276,8 @@ function sendMove(index) {
         statusDisplay.classList.add('draw');
         gameActive = false;
         
-        // Jogador O incrementa empate (X incrementa no updateGameFromFirebase)
-        if (myPlayer === 'O') {
-            score.empate++;
-            updateScoreDisplay();
-        }
+        score.empate++;
+        updateScoreDisplay();
     } else {
         currentPlayer = nextPlayer;
         updateOnlineStatus();
@@ -300,6 +297,7 @@ function sendMove(index) {
 // ==========================================
 restartBtn.addEventListener('click', () => {
     if (isOnlineGame && currentRoomId) {
+        lastProcessedBoard = null; // Reset para permitir processar novo jogo
         database.ref(`rooms/${currentRoomId}/game`).update({
             board: ['', '', '', '', '', '', '', '', ''],
             currentPlayer: 'X',
